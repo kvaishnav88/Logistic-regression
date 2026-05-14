@@ -1,0 +1,170 @@
+##Imports & Data
+
+import numpy as np                 
+import pandas as pd                    
+import matplotlib.pyplot as plt                                       # Import matplotlib as an alias plt and set the style
+%matplotlib inline
+plt.style.use('seaborn-v0_8-darkgrid')  
+from sklearn.linear_model import LogisticRegression                   # the classifier we'll fit
+from sklearn.metrics import accuracy_score, confusion_matrix          # quick eval (later)
+from sklearn.metrics import accuracy_score
+import warnings
+warnings.filterwarnings('ignore')​
+path = '../data/'                      
+df = pd.read_csv(path + 'SPY.csv', index_col=0)
+df.head()
+
+
+
+df['return'] = df['Close'].pct_change()
+
+# Use only PRIOR 2 day's return as the predictor (prevents look-ahead)
+df['1_day_lag_returns'] = df['return'].shift(1)
+df['2_day_lag_returns'] = df['return'].shift(2)
+
+# Binary target: 1 if today's return > 0 else 0
+df['target'] = (df['return'] > 0).astype(int)
+
+# Drop the first row(s) created by pct_change/shift
+df = df.dropna()
+
+
+features = ['1_day_lag_returns', '2_day_lag_returns']
+X = df[features]        
+y = df['target']       
+
+# Keep chronological order: last 20% for test
+test_frac = 0.20
+split = int(len(df) * (1 - test_frac))
+
+X_train = X.iloc[:split]
+X_test  = X.iloc[split:]
+y_train = y.iloc[:split]
+y_test  = y.iloc[split:]
+
+# checking the shape of our data sets
+print("Shapes ->",
+      "X_train:", X_train.shape, "y_train:", y_train.shape,
+      "X_test:", X_test.shape,   "y_test:",  y_test.shape)
+
+
+##Logistic Regression Model
+##We will use the LogisticRegression function from the sklearn.linear_model library to create a logistic regression model.
+##Syntax:
+##LogisticRegression(C=1e5) 
+##Parameters used: 
+##1. C (High value of C tells the model to give more weight to the training data than complexity penalty)
+
+# Create an instance of LogisticRegression and fit the data
+
+logreg = LogisticRegression(C=1e5)  
+
+# fit on training data
+logreg.fit(X_train, y_train)
+
+##Predict & Evaluate
+
+# --- Predict & evaluate on the test window ---
+# Class labels (0/1)
+y_pred = logreg.predict(X_test)
+
+# Probabilities for the positive class (up day)
+y_proba = logreg.predict_proba(X_test)[:, 1]
+
+acc = accuracy_score(y_test, y_pred)
+
+print(f"Accuracy: {acc:.4f}")
+
+##How to read the confusion matrix
+##We print it as rows = true class, columns = predicted class:
+
+cm  = confusion_matrix(y_test, y_pred, labels=[0, 1])
+​
+print("Confusion matrix (rows=true, cols=pred):\n", cm)
+
+
+##The decision-region plot
+
+# --- Optional: decision boundary (binary) ---
+
+# you trained with exactly two features
+f1, f2 = features[0], features[1]
+
+# focus on central range (avoids extreme axes)
+x1_lo, x1_hi = X[f1].quantile([0.01, 0.99])
+x2_lo, x2_hi = X[f2].quantile([0.01, 0.99])
+
+xx, yy = np.meshgrid(
+    np.linspace(x1_lo, x1_hi, 200),
+    np.linspace(x2_lo, x2_hi, 200)
+)
+grid = np.c_[xx.ravel(), yy.ravel()]
+
+Z = logreg.predict(grid).reshape(xx.shape)
+
+plt.figure(figsize=(8,6))
+plt.contourf(xx, yy, Z, alpha=0.25)                     # regions: class 0/1
+plt.scatter(X_test[f1], X_test[f2], c=y_test, s=25,     # overlay test points
+            edgecolor='k', alpha=0.85)
+plt.xlabel(f1); plt.ylabel(f2)
+plt.title('Logistic Regression — Decision Regions (Test set)')
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

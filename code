@@ -9,15 +9,11 @@ from sklearn.linear_model import LogisticRegression                   # the clas
 from sklearn.metrics import accuracy_score, confusion_matrix          # quick eval (later)
 from sklearn.metrics import accuracy_score
 import warnings
-warnings.filterwarnings('ignore')​
+warnings.filterwarnings('ignore')
 path = '../data/'                      
 df = pd.read_csv(path + 'SPY.csv', index_col=0)
 df.head()
-
-
-
 df['return'] = df['Close'].pct_change()
-
 # Use only PRIOR 2 day's return as the predictor (prevents look-ahead)
 df['1_day_lag_returns'] = df['return'].shift(1)
 df['2_day_lag_returns'] = df['return'].shift(2)
@@ -79,14 +75,10 @@ print(f"Accuracy: {acc:.4f}")
 ##We print it as rows = true class, columns = predicted class:
 
 cm  = confusion_matrix(y_test, y_pred, labels=[0, 1])
-​
 print("Confusion matrix (rows=true, cols=pred):\n", cm)
 
-
 ##The decision-region plot
-
 # --- Optional: decision boundary (binary) ---
-
 # you trained with exactly two features
 f1, f2 = features[0], features[1]
 

@@ -1,135 +1,41 @@
-# Logistic-regression
-Linear regression is used to predict values of quantities as a linear function of the input values. When predicting a discrete variable, such as whether a grid of pixel intensities represents 0 or 1, we need to classify the input values. Logistic regression is a simple classification algorithm for learning to make such decisions. It is a model that is used when the dependent variable is categorical. A few cases where logistic regression can be used are mentioned below:
+## Overview
+Despite the name, Logistic Regression is a **classification** algorithm, not a regression one — it predicts the probability that an observation belongs to a given class. It's the natural extension of linear regression to classification problems: rather than predicting an unbounded continuous value, it passes the linear combination of features through a **sigmoid (logistic) function** to squash the output into a valid probability between 0 and 1.
 
-Image segmentation and categorization
-Geographic image recognition
-Handwriting recognition
-Determining whether a person is depressed based on the words of his social media posts
-Predicting the probability of a person voting for a candidate in an election
+## How It Works
+1. Compute the linear combination: **z = β₀ + β₁x₁ + β₂x₂ + ... + βₙxₙ**
+2. Apply the **sigmoid function:** **P(y=1) = 1 / (1 + e^(-z))**, mapping z (which can range from −∞ to +∞) into a probability between 0 and 1
+3. Classify based on a threshold (default 0.5): predict class 1 if P(y=1) > 0.5, else class 0
+4. Coefficients are learned by maximizing the **log-likelihood** of the observed data (equivalently, minimizing **log loss / binary cross-entropy**) via iterative optimization (gradient descent, or solvers like L-BFGS/Newton's method) — there's no closed-form solution like OLS has for linear regression.
 
-Logistic regression falls under supervised learning; it measures the relationship between the categorical dependent variable and one or more independent variables by estimating probabilities using a logistic/sigmoid function. Despite the name 'logistic regression', it is not used for machine learning regression problem where the task is to predict the real-valued output. It is a classification problem that is used to predict a binary outcome (1/0, -1/1, True/False) given a set of independent variables. Logistic regression is a bit similar to linear regression, or we can say it as a generalized linear model. In linear regression, we predict a real-valued output ' y' based on a weighted sum of input variables.
+## Interpreting Coefficients
+Each coefficient βᵢ represents the change in the **log-odds** of the outcome per one-unit increase in that feature. Exponentiating a coefficient (e^β) gives the **odds ratio** — a more intuitive way to communicate effect size (e.g. "each additional year of tenure multiplies the odds of attrition by 0.92").
 
+## Methods & Techniques
+- **Multi-class extensions:**
+  - **One-vs-Rest (OvR):** trains one binary classifier per class (class vs. all others), predicts the class with the highest probability
+  - **Multinomial (Softmax) Logistic Regression:** a single model that directly outputs a probability distribution across all classes simultaneously — generally preferred when classes are mutually exclusive
+- **Regularization:** same L1 (Lasso)/L2 (Ridge)/Elastic Net options as linear regression, applied to the log-likelihood objective — critical when there are many features relative to samples, or correlated features
+- **Class imbalance handling:** `class_weight='balanced'` (upweights the minority class in the loss function), oversampling (SMOTE), undersampling, or adjusting the classification threshold away from the default 0.5 based on the precision/recall trade-off that matters for the use case
+- **Feature scaling:** important when using regularization (same reasoning as Ridge/Lasso above) and helps gradient-based solvers converge faster
+- **Decision threshold tuning:** the default 0.5 cutoff is often wrong for the actual business problem — use a **Precision-Recall curve** or **ROC curve** to pick a threshold matching the real cost of false positives vs. false negatives (e.g. in fraud or disease detection, you often want a lower threshold to catch more true positives at the cost of more false alarms)
 
+## Evaluation Metrics
+- **Accuracy** — only meaningful when classes are reasonably balanced
+- **Precision, Recall, F1-score** — essential when classes are imbalanced
+- **ROC-AUC** — measures ranking quality across all thresholds, useful for balanced problems
+- **Precision-Recall AUC** — more informative than ROC-AUC on heavily imbalanced datasets
+- **Confusion Matrix** — breaks down exactly which classes are being confused with which
 
-                               𝑦 = 𝑐 + 𝑤1 ∗ 𝑥1 + 𝑤2 ∗ 𝑥2 ∗ 𝑤3 ∗ 𝑥3 + ...𝑤𝑛 ∗ 𝑥𝑛
-Linear regression aims to estimate values for the model coefficients 𝑐
-, 𝑤1
-, 𝑤1
-, 𝑤3
-...𝑤𝑛
- and fit the training data with minimal squared error and predict the output y.
+## When to Use It
+Best for binary or multi-class classification where interpretability matters, features have a roughly linear relationship with the log-odds of the outcome, and you need well-calibrated probability outputs (not just hard class labels) — logistic regression's probabilities tend to be better calibrated out-of-the-box than many tree-based models.
 
-Logistic regression does the same thing, but with one addition. The logistic regression model computes a weighted sum of the input variables similar to the linear regression, but it runs the result through a special non-linear function, the logistic function or sigmoid function, to produce the output y. Here, the output is binary or in the form of 0/1 or -1/1.
+## Strengths & Limitations
+| Strengths | Limitations |
+|---|---|
+| Outputs interpretable probabilities, not just labels | Assumes a linear decision boundary (in log-odds space) |
+| Fast to train and predict | Struggles with complex, nonlinear class boundaries without engineered features |
+| Coefficients are directly interpretable (odds ratios) | Sensitive to multicollinearity |
+| Well-calibrated probabilities | Requires more careful feature engineering than tree-based models to capture interactions |
 
-The sigmoid/logistic function is given by the following equation:
-
-𝑦=𝑙𝑜𝑔𝑖𝑠𝑡𝑖𝑐(𝑐+𝑤1∗𝑥1+𝑤2∗𝑥2∗𝑤3∗𝑥3+...𝑤𝑛∗𝑥𝑛)
- 
-𝑦=1/[1+𝑒−(𝑐+𝑤1∗𝑥1+𝑤2∗𝑥2∗𝑤3∗𝑥3+...𝑤𝑛∗𝑥𝑛)]
- 
-𝑦=1/[1+𝑒−𝑥]
- 
-
-As you can see in the below graph, it is an S-shaped curve that gets closer to 1 as the input variable's value increases above 0 and gets closer to 0 as the input variable decreases below 0. The output of the sigmoid function is 0.5 when the input variable is 0.
-
-
-#Imports & Data
-We will use Scikit-Learn library is to perform the logistic regression.
-We will understand how to choose target and predictor variables for a logistic regression model. We have two features, prev day's return, and retruns a day prior to that. And our target variable is stored in the 'target' column.
-We now define our X and y. We have two features and and our target coulmn. We split the data into train and test sets
-
-
-#Logistic Regression Model
-We will use the LogisticRegression function from the sklearn.linear_model library to create a logistic regression model.
-Syntax:
-
-LogisticRegression(C=1e5) 
-Parameters used: 
-        1. C (High value of C tells the model to give more weight to the training data than complexity penalty)
-
-#Predict & Evaluate
-We will use our trained logistic regression model to predict the next-day direction (up = 1, down/flat = 0) on the test window.
-
-We’ll report:
-
-Accuracy (overall hit rate)
-Confusion Matrix (how many ups/downs we got right)
-
-How to read the confusion matrix
-We print it as rows = true class, columns = predicted class:
-
-The decision-region plot
-What’s on the axes?
-x-axis = 1_day_lag_returns, y-axis = 2_day_lag_returns.
-
-Shaded regions = model prediction.
-The two shades show where the model predicts class 0 (down) vs 1 (up).
-The straight line between them is the decision boundary where (P(\text{up}) = 0.5).
-
-Dots = actual test days.
-Each point is a day from the test set; its color indicates the true class (0 or 1).
-
-How to interpret correctness.
-A point lying inside the region of its own class is a correct prediction.
-A point inside the opposite region is a mistake (false positive/negative).
-
-Confidence intuition.
-Points farther from the boundary are predicted with higher probability; points near the line are more uncertain.
-
-What the slope means.
-The tilt of the boundary shows how the two lagged returns trade off: e.g., a higher 1-day lag can offset a negative 2-day lag to still predict “up”.
-
-
-The decision-region plot
-What’s on the axes?
-x-axis = 1_day_lag_returns, y-axis = 2_day_lag_returns.
-
-Shaded regions = model prediction.
-The two shades show where the model predicts class 0 (down) vs 1 (up).
-The straight line between them is the decision boundary where (P(\text{up}) = 0.5).
-
-Dots = actual test days.
-Each point is a day from the test set; its color indicates the true class (0 or 1).
-
-How to interpret correctness.
-A point lying inside the region of its own class is a correct prediction.
-A point inside the opposite region is a mistake (false positive/negative).
-
-Confidence intuition.
-Points farther from the boundary are predicted with higher probability; points near the line are more uncertain.
-
-What the slope means.
-The tilt of the boundary shows how the two lagged returns trade off: e.g., a higher 1-day lag can offset a negative 2-day lag to still predict “up”.
-
-
-Key takeaways
-What we built: A simple logistic regression that predicts next-day direction (0 = down, 1 = up) using lagged returns.
-No look-ahead: We used prior-day lags as features and kept the time order; the last 20% of data was our test set.
-Outputs: predict() gives class labels; predict_proba()[:, 1] gives P(up) for each day.
-Evaluation: Accuracy and the confusion matrix show overall hits and where the model confuses ups vs downs.
-Decision boundary: With two features, the model draws a straight line separating predicted up vs down regions.
-Limitations: Accuracy can be inflated by class imbalance; treat results as a teaching demo, not trading advice.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+---
+---
